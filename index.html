@@ -12,9 +12,49 @@
     background: #f4f5f7;
     color: #1d1d1f;
     display: flex;
+    flex-direction: column;
     height: 100vh;
     overflow: hidden;
   }
+
+  /* ---------- Top tab bar ---------- */
+  #tabbar {
+    display: flex; align-items: center; gap: 6px;
+    background: #fff; border-bottom: 1px solid #e1e1e6;
+    padding: 8px 14px; min-height: 52px;
+  }
+  #tabbar .brand { font-size: 15px; font-weight: 700; margin-right: 14px; }
+  .tab-btn {
+    width: auto; padding: 8px 16px; border-radius: 8px;
+    background: #f0f1f4; color: #444; font-size: 14px; font-weight: 600;
+  }
+  .tab-btn:hover { background: #e4e6ea; }
+  .tab-btn.active { background: #2563eb; color: #fff; }
+  #tabbar .total-pill {
+    margin-left: auto; font-size: 14px; font-weight: 700; color: #1b8a4b;
+    background: #e7f7ec; padding: 8px 14px; border-radius: 8px;
+  }
+
+  #plannerView { display: flex; flex: 1; min-height: 0; }
+  #shoppingView { display: none; flex: 1; min-height: 0; overflow-y: auto; padding: 28px 32px; }
+  #shoppingView.active { display: block; }
+  #plannerView.hidden { display: none; }
+
+  /* ---------- Shopping list ---------- */
+  #shoppingView h2 { font-size: 22px; margin: 0 0 4px; }
+  #shoppingView .sub { color: #6b6b70; font-size: 14px; margin: 0 0 22px; }
+  table.shop { border-collapse: collapse; width: 100%; max-width: 920px; background: #fff;
+    border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+  table.shop th, table.shop td { text-align: left; padding: 12px 14px; border-bottom: 1px solid #eef0f3; font-size: 14px; vertical-align: middle; }
+  table.shop th { background: #f7f8fa; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #8a8a8f; }
+  table.shop td .swatch-sm { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 8px; vertical-align: middle; border: 1px solid rgba(0,0,0,.15); }
+  table.shop input { width: 100%; padding: 6px 8px; border: 1px solid #d8d8de; border-radius: 6px; font-size: 14px; margin: 0; }
+  table.shop input.cost { max-width: 110px; }
+  table.shop a.buy { color: #2563eb; font-weight: 600; text-decoration: none; }
+  table.shop a.buy:hover { text-decoration: underline; }
+  table.shop .del { color: #c0392b; cursor: pointer; font-weight: 700; user-select: none; }
+  table.shop tfoot td { font-weight: 700; font-size: 16px; background: #fafbfc; border-bottom: none; }
+  .shop-empty { color: #8a8a8f; font-size: 15px; margin-top: 20px; }
 
   /* ---------- Sidebar ---------- */
   #sidebar {
@@ -160,6 +200,17 @@
   }
   .item .label { pointer-events: none; padding: 2px; }
 
+  /* measurement-mode gap lines (orange, to tell them apart from the blue size lines) */
+  .m-line { position: absolute; background: #e8590c; pointer-events: none; z-index: 8; }
+  .m-tick { position: absolute; background: #e8590c; pointer-events: none; z-index: 8; }
+  .m-text {
+    position: absolute; z-index: 9; font-size: 10px; font-weight: 700; color: #e8590c;
+    background: rgba(255,255,255,.92); padding: 0 3px; border-radius: 3px; white-space: nowrap;
+    pointer-events: none; transform: translate(-50%,-50%);
+  }
+  button.toggle-on { background: #e8590c; }
+  button.toggle-on:hover { background: #d24f08; }
+
   .dims { position: absolute; pointer-events: none; z-index: 4; }
   .dim-line { position: absolute; background: #2563eb; }
   .dim-tick { position: absolute; background: #2563eb; }
@@ -179,6 +230,14 @@
 </head>
 <body>
 
+<div id="tabbar">
+  <span class="brand">🛏️ Dorm Planner</span>
+  <button class="tab-btn active" id="tabRoom" onclick="showTab('room')">Room Layout</button>
+  <button class="tab-btn" id="tabShop" onclick="showTab('shop')">🧾 Shopping List</button>
+  <span class="total-pill" id="totalPill">Total: $0</span>
+</div>
+
+<div id="plannerView">
 <div id="sidebar">
   <h1>🛏️ Dorm Room Planner</h1>
   <p class="subtitle">Top-down view, drawn to scale.</p>
@@ -193,16 +252,7 @@
   </div>
 
   <div class="section">
-    <h2>Quick Add (your furniture)</h2>
-    <button class="preset-btn" onclick="addPreset('bed')">＋ Bed frame (57 × 77.5 in)</button>
-    <button class="preset-btn" onclick="addPreset('desk')">＋ Desk (48 × 24 in)</button>
-    <button class="preset-btn" onclick="addPreset('dresser')">＋ Dresser (30 × 18 in)</button>
-    <button class="preset-btn" onclick="addPreset('chair')">＋ Chair (20 × 20 in)</button>
-    <button class="preset-btn" onclick="addPreset('rug')">＋ Rug (60 × 36 in)</button>
-  </div>
-
-  <div class="section">
-    <h2>Add Custom Object</h2>
+    <h2>Add Object</h2>
     <div class="shape-toggle">
       <button id="shapeRect" class="active" onclick="setShape('rect')">▭ Rectangle</button>
       <button id="shapeRound" onclick="setShape('round')">⬭ Round</button>
@@ -213,6 +263,10 @@
       <div><label>Width (in)</label><input type="number" id="newW" value="24" min="1"></div>
       <div><label>Depth (in)</label><input type="number" id="newH" value="24" min="1"></div>
     </div>
+    <label>Cost ($) — optional</label>
+    <input type="number" id="newCost" placeholder="e.g. 49.99" min="0" step="0.01">
+    <label>Buy link — optional</label>
+    <input type="text" id="newLink" placeholder="Paste a store URL">
     <label>Color</label>
     <div class="color-row" id="colorRow"></div>
     <button onclick="addCustom()">Add to room</button>
@@ -226,6 +280,10 @@
       <div><label>Width (in)</label><input type="number" id="selW" min="1"></div>
       <div><label>Depth (in)</label><input type="number" id="selH" min="1"></div>
     </div>
+    <label>Cost ($)</label>
+    <input type="number" id="selCost" min="0" step="0.01" placeholder="e.g. 49.99">
+    <label>Buy link</label>
+    <input type="text" id="selLink" placeholder="Paste a store URL">
     <button class="secondary" onclick="rotateSelected()" style="margin-bottom:8px;">↻ Rotate 90°</button>
     <button class="danger" onclick="deleteSelected()">Delete object</button>
     <p class="hint">Drag the middle to move. Drag the blue dot to resize. Delete key removes it.</p>
@@ -240,6 +298,12 @@
   </div>
 
   <div class="section">
+    <h2>Measure Mode</h2>
+    <button id="measureBtn" class="secondary" onclick="toggleMeasure()">📏 Measure mode: OFF</button>
+    <p class="hint">Turn on, then click any object, door, or window to see how far it sits from each wall (updates as you drag).</p>
+  </div>
+
+  <div class="section">
     <h2>Room</h2>
     <button class="secondary" onclick="resetRoom()">Clear everything</button>
     <p class="footer-note">Changes you make are shared live with anyone who has this link.</p>
@@ -249,6 +313,13 @@
 <div id="stage">
   <div id="room"></div>
   <div id="scaleBadge">Each grid square ≈ 1 ft &nbsp;•&nbsp; <span id="zoomInfo"></span></div>
+</div>
+</div><!-- /plannerView -->
+
+<div id="shoppingView">
+  <h2>🧾 Shopping List</h2>
+  <p class="sub">Everything in your room, what it costs, and where to buy it. Edit any cost or link right here — it saves and shares automatically.</p>
+  <div id="shopTableWrap"></div>
 </div>
 
 <!-- The Supabase library is loaded by our own code below (so a slow/blocked
@@ -341,6 +412,7 @@ function renderFixture(f) {
   if (f.wall==='bottom') { el.style.left=(f.along*PPI)+'px'; el.style.top=(h-FIX_THICK/2)+'px'; el.style.width=lenPx+'px'; el.style.height=FIX_THICK+'px'; }
   if (f.wall==='left')   { el.style.top=(f.along*PPI)+'px'; el.style.left=(-FIX_THICK/2)+'px'; el.style.height=lenPx+'px'; el.style.width=FIX_THICK+'px'; }
   if (f.wall==='right')  { el.style.top=(f.along*PPI)+'px'; el.style.left=(w-FIX_THICK/2)+'px'; el.style.height=lenPx+'px'; el.style.width=FIX_THICK+'px'; }
+  renderMeasure();
 }
 function attachFixtureDrag(el, f) {
   el.addEventListener('pointerdown', (e) => {
@@ -377,9 +449,10 @@ let selKind = null;
 let idCounter = 1;
 let isDragging = false;
 
-function makeItem({name, w, h, color, shape, xIn, yIn}) {
+function makeItem({name, w, h, color, shape, xIn, yIn, cost, link}) {
   const id = idCounter++;
-  const item = { id, name, w, h, color, shape: shape||'rect', xIn: xIn ?? 6, yIn: yIn ?? 6 };
+  const item = { id, name, w, h, color, shape: shape||'rect', xIn: xIn ?? 6, yIn: yIn ?? 6,
+                 cost: cost ?? null, link: link || '' };
   items.push(item);
   renderItem(item);
   selectItem(id);
@@ -402,8 +475,10 @@ function renderItem(item) {
   el.style.width = (item.w * PPI) + 'px';
   el.style.height = (item.h * PPI) + 'px';
   el.style.background = item.color;
-  el.querySelector('.label').innerHTML = `${item.name}`;
+  const costTag = (item.cost!=null && item.cost!=='') ? `<br><small>$${round(item.cost)}</small>` : '';
+  el.querySelector('.label').innerHTML = `${item.name}${costTag}`;
   renderDims(item);
+  renderMeasure();
 }
 function renderDims(item) {
   let dims = document.getElementById('dims-'+item.id);
@@ -436,6 +511,7 @@ function renderAll() {
   document.querySelectorAll('.fixture').forEach(el=>{ const id=+el.id.replace('fix-',''); if(!fixtures.find(f=>f.id===id)) el.remove(); });
   items.forEach(renderItem);
   fixtures.forEach(renderFixture);
+  renderShopping();
 }
 
 function attachDrag(el, item) {
@@ -516,6 +592,8 @@ function syncSelectedPanel() {
   document.getElementById('selName').value = item.name;
   document.getElementById('selW').value = item.w;
   document.getElementById('selH').value = item.h;
+  document.getElementById('selCost').value = (item.cost==null ? '' : item.cost);
+  document.getElementById('selLink').value = item.link || '';
 }
 document.getElementById('selName').addEventListener('input', e=>{
   const item = items.find(i=>i.id===selectedId); if(!item) return;
@@ -528,6 +606,15 @@ document.getElementById('selW').addEventListener('input', e=>{
 document.getElementById('selH').addEventListener('input', e=>{
   const item = items.find(i=>i.id===selectedId); if(!item) return;
   item.h = Math.max(1, +e.target.value||1); renderItem(item); pushStateSoon();
+});
+document.getElementById('selCost').addEventListener('input', e=>{
+  const item = items.find(i=>i.id===selectedId); if(!item) return;
+  item.cost = e.target.value==='' ? null : Math.max(0, +e.target.value||0);
+  renderItem(item); renderShopping(); pushStateSoon();
+});
+document.getElementById('selLink').addEventListener('input', e=>{
+  const item = items.find(i=>i.id===selectedId); if(!item) return;
+  item.link = e.target.value.trim(); renderShopping(); pushStateSoon();
 });
 document.getElementById('fixSize').addEventListener('input', e=>{
   const f = fixtures.find(x=>x.id===selectedId); if(!f) return;
@@ -558,18 +645,162 @@ function addCustom() {
   const name = document.getElementById('newName').value.trim() || 'Object';
   const w = Math.max(1, +document.getElementById('newW').value||24);
   const h = Math.max(1, +document.getElementById('newH').value||24);
-  makeItem({ name, w, h, color: selectedColor, shape: currentShape });
+  const costRaw = document.getElementById('newCost').value;
+  const cost = costRaw==='' ? null : Math.max(0, +costRaw||0);
+  const link = document.getElementById('newLink').value.trim();
+  makeItem({ name, w, h, color: selectedColor, shape: currentShape, cost, link });
   document.getElementById('newName').value = '';
+  document.getElementById('newCost').value = '';
+  document.getElementById('newLink').value = '';
 }
-const PRESETS = {
-  bed:{name:'Bed',w:57,h:77.5,color:'#a8d8f9'}, desk:{name:'Desk',w:48,h:24,color:'#fcd29b'},
-  dresser:{name:'Dresser',w:30,h:18,color:'#d6d3cb'}, chair:{name:'Chair',w:20,h:20,color:'#bbf7b0'},
-  rug:{name:'Rug',w:60,h:36,color:'#c4b5fd'},
-};
-function addPreset(key){ makeItem({ ...PRESETS[key] }); }
 function resetRoom() {
   if (!confirm('Remove everything from the room? (This clears it for your roommate too.)')) return;
   items = []; fixtures = []; deselect(); pushState();
+}
+
+/* ---------------- Shopping list / spreadsheet ---------------- */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function safeUrl(u){
+  u = (u||'').trim();
+  if (!u) return '';
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u; // let people paste "amazon.com/..."
+  return u;
+}
+
+function renderShopping() {
+  let total = 0;
+  const rows = items.map(item => {
+    const cost = (item.cost!=null && item.cost!=='') ? Number(item.cost) : 0;
+    total += cost;
+    const url = safeUrl(item.link);
+    const buy = url ? `<a class="buy" href="${escapeHtml(url)}" target="_blank" rel="noopener">Open link ↗</a>` : '<span style="color:#bbb">—</span>';
+    return `<tr>
+      <td><span class="swatch-sm" style="background:${escapeHtml(item.color)}"></span>${escapeHtml(item.name)}</td>
+      <td><input class="cost" type="number" min="0" step="0.01" value="${item.cost==null?'':item.cost}"
+            placeholder="0.00" onchange="setItemCost(${item.id}, this.value)"></td>
+      <td><input type="text" value="${escapeHtml(item.link||'')}" placeholder="Paste a store URL"
+            onchange="setItemLink(${item.id}, this.value)"></td>
+      <td>${buy}</td>
+      <td class="del" title="Remove" onclick="removeItemById(${item.id})">✕</td>
+    </tr>`;
+  }).join('');
+
+  const wrap = document.getElementById('shopTableWrap');
+  if (!items.length) {
+    wrap.innerHTML = `<p class="shop-empty">No objects yet. Add furniture on the Room Layout tab, then give each piece a cost and a buy link here.</p>`;
+  } else {
+    wrap.innerHTML = `<table class="shop">
+      <thead><tr><th>Item</th><th>Cost ($)</th><th>Buy link</th><th></th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td>Total</td><td colspan="4">$${round(total)}</td></tr></tfoot>
+    </table>`;
+  }
+  document.getElementById('totalPill').textContent = 'Total: $' + round(total);
+}
+
+function setItemCost(id, val) {
+  const item = items.find(i=>i.id===id); if(!item) return;
+  item.cost = val==='' ? null : Math.max(0, +val||0);
+  renderItem(item); renderShopping();
+  if (selectedId===id) syncSelectedPanel();
+  pushState();
+}
+function setItemLink(id, val) {
+  const item = items.find(i=>i.id===id); if(!item) return;
+  item.link = (val||'').trim(); renderShopping();
+  if (selectedId===id) syncSelectedPanel();
+  pushState();
+}
+function removeItemById(id) {
+  items = items.filter(i=>i.id!==id);
+  if (selectedId===id) deselect();
+  renderAll(); pushState();
+}
+
+/* ---------------- Tabs ---------------- */
+function showTab(which) {
+  const room = which==='room';
+  document.getElementById('plannerView').classList.toggle('hidden', !room);
+  document.getElementById('shoppingView').classList.toggle('active', !room);
+  document.getElementById('tabRoom').classList.toggle('active', room);
+  document.getElementById('tabShop').classList.toggle('active', !room);
+  if (!room) renderShopping();
+  else layoutOnly(); // re-fit the room drawing after being hidden
+}
+
+/* ---------------- Measure mode ---------------- */
+let measureMode = false;
+function toggleMeasure() {
+  measureMode = !measureMode;
+  const b = document.getElementById('measureBtn');
+  b.textContent = '📏 Measure mode: ' + (measureMode ? 'ON' : 'OFF');
+  b.classList.toggle('toggle-on', measureMode);
+  renderMeasure();
+}
+
+// horizontal gap: a line from xA to xB at height yPx, labelled with inches
+function gapH(layer, xA, xB, yPx, inches) {
+  if (xB - xA < 2) return; // too small to bother
+  add(layer, 'm-line', {left:xA, top:yPx, width:(xB-xA), height:1});
+  add(layer, 'm-tick', {left:xA, top:yPx-4, width:1, height:9});
+  add(layer, 'm-tick', {left:xB-1, top:yPx-4, width:1, height:9});
+  addText(layer, (xA+xB)/2, yPx, inches + '"');
+}
+// vertical gap: a line from yA to yB at x xPx
+function gapV(layer, yA, yB, xPx, inches) {
+  if (yB - yA < 2) return;
+  add(layer, 'm-line', {left:xPx, top:yA, width:1, height:(yB-yA)});
+  add(layer, 'm-tick', {left:xPx-4, top:yA, width:9, height:1});
+  add(layer, 'm-tick', {left:xPx-4, top:yB-1, width:9, height:1});
+  addText(layer, xPx, (yA+yB)/2, inches + '"');
+}
+function add(layer, cls, s) {
+  const d = document.createElement('div'); d.className = cls;
+  d.style.left=s.left+'px'; d.style.top=s.top+'px'; d.style.width=s.width+'px'; d.style.height=s.height+'px';
+  layer.appendChild(d);
+}
+function addText(layer, x, y, text) {
+  const d = document.createElement('div'); d.className='m-text';
+  d.style.left=x+'px'; d.style.top=y+'px'; d.textContent=text;
+  layer.appendChild(d);
+}
+
+function renderMeasure() {
+  let layer = document.getElementById('measureLayer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'measureLayer';
+    layer.style.position='absolute'; layer.style.left='0'; layer.style.top='0';
+    layer.style.right='0'; layer.style.bottom='0'; layer.style.pointerEvents='none';
+    roomEl.appendChild(layer);
+  }
+  layer.innerHTML = '';
+  if (!measureMode || selectedId==null) return;
+  const W = ROOM.width*PPI, H = ROOM.length*PPI;
+
+  if (selKind==='item') {
+    const it = items.find(i=>i.id===selectedId); if(!it) return;
+    const x=it.xIn*PPI, y=it.yIn*PPI, w=it.w*PPI, h=it.h*PPI;
+    const cx=x+w/2, cy=y+h/2;
+    gapH(layer, 0, x, cy, round(it.xIn));                                // to left wall
+    gapH(layer, x+w, W, cy, round(ROOM.width-(it.xIn+it.w)));            // to right wall
+    gapV(layer, 0, y, cx, round(it.yIn));                               // to top wall
+    gapV(layer, y+h, H, cx, round(ROOM.length-(it.yIn+it.h)));          // to bottom wall
+  } else if (selKind==='fixture') {
+    const f = fixtures.find(x=>x.id===selectedId); if(!f) return;
+    const horiz = (f.wall==='top'||f.wall==='bottom');
+    if (horiz) {
+      const yLine = (f.wall==='top') ? 16 : H-16;
+      const x0=f.along*PPI, x1=(f.along+f.size)*PPI;
+      gapH(layer, 0, x0, yLine, round(f.along));                        // to left corner
+      gapH(layer, x1, W, yLine, round(ROOM.width-(f.along+f.size)));    // to right corner
+    } else {
+      const xLine = (f.wall==='left') ? 16 : W-16;
+      const y0=f.along*PPI, y1=(f.along+f.size)*PPI;
+      gapV(layer, 0, y0, xLine, round(f.along));                        // to top corner
+      gapV(layer, y1, H, xLine, round(ROOM.length-(f.along+f.size)));   // to bottom corner
+    }
+  }
 }
 
 /* ---------------- Colors ---------------- */
