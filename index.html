@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dorm Room Planner</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f4f5f7;
+    color: #1d1d1f;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar {
+    width: 320px;
+    min-width: 320px;
+    background: #ffffff;
+    border-right: 1px solid #e1e1e6;
+    padding: 20px;
+    overflow-y: auto;
+    height: 100vh;
+  }
+  #sidebar h1 { font-size: 20px; margin: 0 0 4px; }
+  #sidebar .subtitle { font-size: 13px; color: #6b6b70; margin: 0 0 16px; }
+  .section { margin-bottom: 24px; }
+  .section h2 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #8a8a8f;
+    margin: 0 0 10px;
+  }
+  label { font-size: 13px; display: block; margin-bottom: 4px; color: #444; }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d0d0d6;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  .color-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .swatch {
+    width: 26px; height: 26px; border-radius: 6px; cursor: pointer;
+    border: 2px solid transparent;
+  }
+  .swatch.selected { border-color: #1d1d1f; }
+  button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #e9e9ee; color: #1d1d1f; }
+  button.secondary:hover { background: #dcdce2; }
+  button.danger { background: #ef4444; }
+  button.danger:hover { background: #dc2626; }
+  .shape-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+  .shape-toggle button {
+    flex: 1; font-size: 13px; padding: 8px;
+    background: #e9e9ee; color: #1d1d1f;
+  }
+  .shape-toggle button.active { background: #2563eb; color: #fff; }
+
+  .preset-btn {
+    background: #f0f4ff; color: #2563eb; border: 1px solid #cdd9ff;
+    margin-bottom: 8px; text-align: left; padding: 9px 12px; font-weight: 500;
+  }
+  .preset-btn:hover { background: #e2eaff; }
+
+  #selectedPanel, #fixturePanel { display: none; }
+  #selectedPanel.visible, #fixturePanel.visible { display: block; }
+  .hint { font-size: 12px; color: #8a8a8f; line-height: 1.5; }
+
+  /* ---------- Connection badge ---------- */
+  #connBadge {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 600;
+    padding: 8px 10px; border-radius: 8px;
+    margin-bottom: 16px;
+    background: #f3f4f6; color: #6b6b70;
+  }
+  #connDot { width: 9px; height: 9px; border-radius: 50%; background: #aaa; }
+  #connBadge.live   { background: #e7f7ec; color: #1b8a4b; }
+  #connBadge.live   #connDot { background: #25c469; }
+  #connBadge.local  { background: #fff5e6; color: #b76e00; }
+  #connBadge.local  #connDot { background: #ffab2e; }
+  #connBadge.error  { background: #fdecec; color: #c0392b; }
+  #connBadge.error  #connDot { background: #e74c3c; }
+
+  /* ---------- Canvas ---------- */
+  #stage {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(#e9e9ee 1px, transparent 1px),
+      linear-gradient(90deg, #e9e9ee 1px, transparent 1px),
+      #fbfbfd;
+    background-size: 40px 40px, 40px 40px;
+  }
+  #room {
+    position: absolute;
+    background: #ffffff;
+    border: 3px solid #3a3a40;
+    box-shadow: 0 8px 30px rgba(0,0,0,.08);
+  }
+  .wall-label {
+    position: absolute; font-size: 12px; color: #6b6b70;
+    background: rgba(255,255,255,.85); padding: 1px 6px; border-radius: 4px;
+    white-space: nowrap; pointer-events: none;
+  }
+  .light {
+    position: absolute; width: 22px; height: 22px; border-radius: 50%;
+    background: radial-gradient(circle, #ffe27a 0%, #ffd23f 70%, #f0b400 100%);
+    box-shadow: 0 0 14px 6px rgba(255,210,63,.55);
+    pointer-events: none; transform: translate(-50%,-50%); z-index: 1;
+  }
+
+  .fixture {
+    position: absolute; cursor: grab; z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 1px rgba(0,0,0,.3); user-select: none;
+  }
+  .fixture.door {
+    background: repeating-linear-gradient(45deg,#c79a4a,#c79a4a 6px,#b5872f 6px,#b5872f 12px);
+    border-radius: 3px;
+  }
+  .fixture.window {
+    background: #9fd3ff; border: 1px solid #5aa9e6; color: #1a5a8a; text-shadow: none;
+  }
+  .fixture.selected { outline: 3px solid #2563eb; outline-offset: 2px; z-index: 12; }
+
+  .item {
+    position: absolute; border: 2px solid rgba(0,0,0,.35); box-sizing: border-box;
+    cursor: grab; display: flex; align-items: center; justify-content: center;
+    text-align: center; font-size: 11px; color: #1d1d1f; user-select: none;
+    line-height: 1.2; z-index: 6;
+  }
+  .item.round { border-radius: 50%; }
+  .item.selected { outline: 3px solid #2563eb; outline-offset: 2px; z-index: 13; }
+  .item .resize-handle {
+    position: absolute; right: -7px; bottom: -7px; width: 16px; height: 16px;
+    background: #2563eb; border: 2px solid #fff; border-radius: 50%; cursor: nwse-resize;
+  }
+  .item .label { pointer-events: none; padding: 2px; }
+
+  .dims { position: absolute; pointer-events: none; z-index: 4; }
+  .dim-line { position: absolute; background: #2563eb; }
+  .dim-tick { position: absolute; background: #2563eb; }
+  .dim-text {
+    position: absolute; font-size: 10px; color: #2563eb;
+    background: rgba(255,255,255,.9); padding: 0 3px; border-radius: 3px;
+    white-space: nowrap; font-weight: 600;
+  }
+
+  #scaleBadge {
+    position: absolute; bottom: 16px; left: 16px;
+    background: rgba(255,255,255,.9); padding: 8px 12px; border-radius: 8px;
+    font-size: 12px; color: #444; box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  }
+  .footer-note { font-size: 11px; color: #aaa; margin-top: 8px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>🛏️ Dorm Room Planner</h1>
+  <p class="subtitle">Top-down view, drawn to scale.</p>
+
+  <div id="connBadge"><span id="connDot"></span><span id="connText">Starting…</span></div>
+
+  <div class="section">
+    <h2>Doors &amp; Windows</h2>
+    <button class="preset-btn" onclick="addFixture('window')">＋ Add window</button>
+    <button class="preset-btn" onclick="addFixture('door')">＋ Add door</button>
+    <p class="hint">Drag a door or window — it snaps to the nearest wall.</p>
+  </div>
+
+  <div class="section">
+    <h2>Quick Add (your furniture)</h2>
+    <button class="preset-btn" onclick="addPreset('bed')">＋ Bed frame (57 × 77.5 in)</button>
+    <button class="preset-btn" onclick="addPreset('desk')">＋ Desk (48 × 24 in)</button>
+    <button class="preset-btn" onclick="addPreset('dresser')">＋ Dresser (30 × 18 in)</button>
+    <button class="preset-btn" onclick="addPreset('chair')">＋ Chair (20 × 20 in)</button>
+    <button class="preset-btn" onclick="addPreset('rug')">＋ Rug (60 × 36 in)</button>
+  </div>
+
+  <div class="section">
+    <h2>Add Custom Object</h2>
+    <div class="shape-toggle">
+      <button id="shapeRect" class="active" onclick="setShape('rect')">▭ Rectangle</button>
+      <button id="shapeRound" onclick="setShape('round')">⬭ Round</button>
+    </div>
+    <label>Name</label>
+    <input type="text" id="newName" placeholder="e.g. Mini fridge">
+    <div class="row">
+      <div><label>Width (in)</label><input type="number" id="newW" value="24" min="1"></div>
+      <div><label>Depth (in)</label><input type="number" id="newH" value="24" min="1"></div>
+    </div>
+    <label>Color</label>
+    <div class="color-row" id="colorRow"></div>
+    <button onclick="addCustom()">Add to room</button>
+  </div>
+
+  <div class="section" id="selectedPanel">
+    <h2>Selected Object</h2>
+    <label>Name</label>
+    <input type="text" id="selName">
+    <div class="row">
+      <div><label>Width (in)</label><input type="number" id="selW" min="1"></div>
+      <div><label>Depth (in)</label><input type="number" id="selH" min="1"></div>
+    </div>
+    <button class="secondary" onclick="rotateSelected()" style="margin-bottom:8px;">↻ Rotate 90°</button>
+    <button class="danger" onclick="deleteSelected()">Delete object</button>
+    <p class="hint">Drag the middle to move. Drag the blue dot to resize. Delete key removes it.</p>
+  </div>
+
+  <div class="section" id="fixturePanel">
+    <h2>Selected <span id="fixKind">Window</span></h2>
+    <label>Width along wall (in)</label>
+    <input type="number" id="fixSize" min="1">
+    <button class="danger" onclick="deleteFixture()">Delete</button>
+    <p class="hint">Drag it to any wall — it snaps automatically.</p>
+  </div>
+
+  <div class="section">
+    <h2>Room</h2>
+    <button class="secondary" onclick="resetRoom()">Clear everything</button>
+    <p class="footer-note">Changes you make are shared live with anyone who has this link.</p>
+  </div>
+</div>
+
+<div id="stage">
+  <div id="room"></div>
+  <div id="scaleBadge">Each grid square ≈ 1 ft &nbsp;•&nbsp; <span id="zoomInfo"></span></div>
+</div>
+
+<!-- The Supabase library is loaded by our own code below (so a slow/blocked
+     download can't freeze the whole page). -->
+<script>
+/* ============================================================
+   ⬇⬇⬇  PASTE YOUR TWO SUPABASE KEYS BETWEEN THE QUOTES  ⬇⬇⬇
+   (Claude will tell you exactly where to find them.)
+   ============================================================ */
+const SUPABASE_URL = "https://eitvohfjdrtqkzcpqbop.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_sk5TzgOS3Cn55LORTbBJuw_QNKXV2YZ";
+const ROOM_ID = "main"; // the shared room everyone edits
+/* ============================================================ */
+
+const ROOM = { width: 155, length: 179 };
+const COLORS = ['#f9a8a8','#fcd29b','#fde68a','#bbf7b0','#a8d8f9','#c4b5fd','#f5b8e0','#d6d3cb','#cbd5e1'];
+let selectedColor = COLORS[4];
+let currentShape = 'rect';
+
+let PPI = 3.2;
+const stage = document.getElementById('stage');
+const roomEl = document.getElementById('room');
+let roomLeft = 0, roomTop = 0;
+
+function computeScale() {
+  const pad = 90;
+  const availW = stage.clientWidth - pad*2;
+  const availH = stage.clientHeight - pad*2;
+  PPI = Math.min(availW / ROOM.width, availH / ROOM.length);
+  const w = ROOM.width * PPI, h = ROOM.length * PPI;
+  roomLeft = (stage.clientWidth - w) / 2;
+  roomTop = (stage.clientHeight - h) / 2;
+  roomEl.style.left = roomLeft + 'px';
+  roomEl.style.top = roomTop + 'px';
+  roomEl.style.width = w + 'px';
+  roomEl.style.height = h + 'px';
+  document.getElementById('zoomInfo').textContent = `Room ${ROOM.width}" × ${ROOM.length}"`;
+}
+
+function drawStaticFixtures() {
+  roomEl.querySelectorAll('.light, .wall-label').forEach(e=>e.remove());
+  const w = ROOM.width * PPI, h = ROOM.length * PPI;
+  const light = document.createElement('div');
+  light.className = 'light';
+  light.style.left = (w/2)+'px';
+  light.style.top = (h/2)+'px';
+  light.title = 'Ceiling light';
+  roomEl.appendChild(light);
+  addWallLabel(`${ROOM.width}" wide`, w/2, -26, 'cx');
+  addWallLabel(`${ROOM.length}" long`, -46, h/2, 'cy');
+}
+function addWallLabel(text, x, y, mode) {
+  const lbl = document.createElement('div');
+  lbl.className = 'wall-label';
+  lbl.textContent = text;
+  lbl.style.left = x + 'px';
+  lbl.style.top = y + 'px';
+  if (mode==='cx') lbl.style.transform = 'translateX(-50%)';
+  if (mode==='cy') lbl.style.transform = 'translateY(-50%) rotate(-90deg)';
+  roomEl.appendChild(lbl);
+}
+
+/* ---------------- Fixtures ---------------- */
+let fixtures = [];
+const FIX_THICK = 11;
+
+function addFixture(kind) {
+  const f = { id: idCounter++, type: kind, wall: 'top', along: ROOM.width*0.35, size: kind==='door'?36:36 };
+  fixtures.push(f);
+  renderFixture(f);
+  selectFixture(f.id);
+  pushState();
+}
+function renderFixture(f) {
+  let el = document.getElementById('fix-'+f.id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'fix-'+f.id;
+    roomEl.appendChild(el);
+    attachFixtureDrag(el, f);
+  }
+  el.className = 'fixture ' + f.type + (f.id===selectedId && selKind==='fixture' ? ' selected' : '');
+  el.textContent = f.type === 'door' ? 'DOOR' : f.size + '"';
+  const w = ROOM.width * PPI, h = ROOM.length * PPI;
+  const lenPx = f.size * PPI;
+  const horizontal = (f.wall==='top' || f.wall==='bottom');
+  const maxAlong = horizontal ? ROOM.width - f.size : ROOM.length - f.size;
+  f.along = Math.max(0, Math.min(maxAlong, f.along));
+  if (f.wall==='top')    { el.style.left=(f.along*PPI)+'px'; el.style.top=(-FIX_THICK/2)+'px'; el.style.width=lenPx+'px'; el.style.height=FIX_THICK+'px'; }
+  if (f.wall==='bottom') { el.style.left=(f.along*PPI)+'px'; el.style.top=(h-FIX_THICK/2)+'px'; el.style.width=lenPx+'px'; el.style.height=FIX_THICK+'px'; }
+  if (f.wall==='left')   { el.style.top=(f.along*PPI)+'px'; el.style.left=(-FIX_THICK/2)+'px'; el.style.height=lenPx+'px'; el.style.width=FIX_THICK+'px'; }
+  if (f.wall==='right')  { el.style.top=(f.along*PPI)+'px'; el.style.left=(w-FIX_THICK/2)+'px'; el.style.height=lenPx+'px'; el.style.width=FIX_THICK+'px'; }
+}
+function attachFixtureDrag(el, f) {
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    selectFixture(f.id);
+    isDragging = true;
+    function move(ev) {
+      const rect = roomEl.getBoundingClientRect();
+      const xIn = (ev.clientX - rect.left) / PPI;
+      const yIn = (ev.clientY - rect.top) / PPI;
+      const dTop = yIn, dBottom = ROOM.length - yIn, dLeft = xIn, dRight = ROOM.width - xIn;
+      const min = Math.min(dTop, dBottom, dLeft, dRight);
+      if (min===dTop)        { f.wall='top';    f.along = xIn - f.size/2; }
+      else if (min===dBottom){ f.wall='bottom'; f.along = xIn - f.size/2; }
+      else if (min===dLeft)  { f.wall='left';   f.along = yIn - f.size/2; }
+      else                   { f.wall='right';  f.along = yIn - f.size/2; }
+      renderFixture(f);
+    }
+    function up() {
+      isDragging = false;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      pushState();
+    }
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+}
+
+/* ---------------- Furniture ---------------- */
+let items = [];
+let selectedId = null;
+let selKind = null;
+let idCounter = 1;
+let isDragging = false;
+
+function makeItem({name, w, h, color, shape, xIn, yIn}) {
+  const id = idCounter++;
+  const item = { id, name, w, h, color, shape: shape||'rect', xIn: xIn ?? 6, yIn: yIn ?? 6 };
+  items.push(item);
+  renderItem(item);
+  selectItem(id);
+  pushState();
+  return item;
+}
+function renderItem(item) {
+  let el = document.getElementById('item-'+item.id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'item-'+item.id;
+    el.className = 'item';
+    el.innerHTML = `<span class="label"></span><div class="resize-handle"></div>`;
+    roomEl.appendChild(el);
+    attachDrag(el, item);
+  }
+  el.className = 'item' + (item.shape==='round'?' round':'') + (item.id===selectedId && selKind==='item'?' selected':'');
+  el.style.left = (item.xIn * PPI) + 'px';
+  el.style.top = (item.yIn * PPI) + 'px';
+  el.style.width = (item.w * PPI) + 'px';
+  el.style.height = (item.h * PPI) + 'px';
+  el.style.background = item.color;
+  el.querySelector('.label').innerHTML = `${item.name}`;
+  renderDims(item);
+}
+function renderDims(item) {
+  let dims = document.getElementById('dims-'+item.id);
+  if (!dims) {
+    dims = document.createElement('div');
+    dims.id = 'dims-'+item.id;
+    dims.className = 'dims';
+    roomEl.appendChild(dims);
+  }
+  const x = item.xIn*PPI, y = item.yIn*PPI, w = item.w*PPI, h = item.h*PPI;
+  const OFF = 13;
+  dims.style.left = x+'px'; dims.style.top = y+'px';
+  dims.style.width = w+'px'; dims.style.height = h+'px';
+  dims.innerHTML = `
+    <div class="dim-line" style="left:0; top:${-OFF}px; width:${w}px; height:1px;"></div>
+    <div class="dim-tick" style="left:0; top:${-OFF-4}px; width:1px; height:9px;"></div>
+    <div class="dim-tick" style="left:${w-1}px; top:${-OFF-4}px; width:1px; height:9px;"></div>
+    <div class="dim-text" style="left:${w/2}px; top:${-OFF-9}px; transform:translate(-50%,-50%);">${round(item.w)}"</div>
+    <div class="dim-line" style="left:${-OFF}px; top:0; width:1px; height:${h}px;"></div>
+    <div class="dim-tick" style="left:${-OFF-4}px; top:0; width:9px; height:1px;"></div>
+    <div class="dim-tick" style="left:${-OFF-4}px; top:${h-1}px; width:9px; height:1px;"></div>
+    <div class="dim-text" style="left:${-OFF-9}px; top:${h/2}px; transform:translate(-50%,-50%) rotate(-90deg);">${round(item.h)}"</div>
+  `;
+}
+function round(n){ return Math.round(n*10)/10; }
+
+function renderAll() {
+  document.querySelectorAll('.item').forEach(el=>{ const id=+el.id.replace('item-',''); if(!items.find(i=>i.id===id)) el.remove(); });
+  document.querySelectorAll('.dims').forEach(el=>{ const id=+el.id.replace('dims-',''); if(!items.find(i=>i.id===id)) el.remove(); });
+  document.querySelectorAll('.fixture').forEach(el=>{ const id=+el.id.replace('fix-',''); if(!fixtures.find(f=>f.id===id)) el.remove(); });
+  items.forEach(renderItem);
+  fixtures.forEach(renderFixture);
+}
+
+function attachDrag(el, item) {
+  const handle = el.querySelector('.resize-handle');
+  el.addEventListener('pointerdown', (e) => {
+    if (e.target === handle) return;
+    e.preventDefault();
+    selectItem(item.id);
+    isDragging = true;
+    const startX = e.clientX, startY = e.clientY;
+    const origX = item.xIn, origY = item.yIn;
+    el.style.cursor = 'grabbing';
+    function move(ev) {
+      const dxIn = (ev.clientX - startX) / PPI;
+      const dyIn = (ev.clientY - startY) / PPI;
+      item.xIn = clamp(origX + dxIn, 0, ROOM.width - item.w);
+      item.yIn = clamp(origY + dyIn, 0, ROOM.length - item.h);
+      renderItem(item);
+    }
+    function up() {
+      el.style.cursor = 'grab'; isDragging = false;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      pushState();
+    }
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    selectItem(item.id);
+    isDragging = true;
+    const startX = e.clientX, startY = e.clientY;
+    const origW = item.w, origH = item.h;
+    function move(ev) {
+      const dwIn = (ev.clientX - startX) / PPI;
+      const dhIn = (ev.clientY - startY) / PPI;
+      item.w = Math.max(4, Math.round(clamp(origW + dwIn, 4, ROOM.width - item.xIn)));
+      item.h = Math.max(4, Math.round(clamp(origH + dhIn, 4, ROOM.length - item.yIn)));
+      renderItem(item); syncSelectedPanel();
+    }
+    function up() {
+      isDragging = false;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      pushState();
+    }
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+}
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+/* ---------------- Selection ---------------- */
+function selectItem(id) {
+  selectedId = id; selKind = 'item';
+  document.getElementById('fixturePanel').classList.remove('visible');
+  document.getElementById('selectedPanel').classList.add('visible');
+  renderAll(); syncSelectedPanel();
+}
+function selectFixture(id) {
+  selectedId = id; selKind = 'fixture';
+  document.getElementById('selectedPanel').classList.remove('visible');
+  document.getElementById('fixturePanel').classList.add('visible');
+  renderAll();
+  const f = fixtures.find(x=>x.id===id); if(!f) return;
+  document.getElementById('fixKind').textContent = f.type==='door' ? 'Door' : 'Window';
+  document.getElementById('fixSize').value = f.size;
+}
+function deselect() {
+  selectedId = null; selKind = null;
+  document.getElementById('selectedPanel').classList.remove('visible');
+  document.getElementById('fixturePanel').classList.remove('visible');
+  renderAll();
+}
+function syncSelectedPanel() {
+  const item = items.find(i=>i.id===selectedId); if (!item) return;
+  document.getElementById('selName').value = item.name;
+  document.getElementById('selW').value = item.w;
+  document.getElementById('selH').value = item.h;
+}
+document.getElementById('selName').addEventListener('input', e=>{
+  const item = items.find(i=>i.id===selectedId); if(!item) return;
+  item.name = e.target.value; renderItem(item); pushStateSoon();
+});
+document.getElementById('selW').addEventListener('input', e=>{
+  const item = items.find(i=>i.id===selectedId); if(!item) return;
+  item.w = Math.max(1, +e.target.value||1); renderItem(item); pushStateSoon();
+});
+document.getElementById('selH').addEventListener('input', e=>{
+  const item = items.find(i=>i.id===selectedId); if(!item) return;
+  item.h = Math.max(1, +e.target.value||1); renderItem(item); pushStateSoon();
+});
+document.getElementById('fixSize').addEventListener('input', e=>{
+  const f = fixtures.find(x=>x.id===selectedId); if(!f) return;
+  f.size = Math.max(1, +e.target.value||1); renderFixture(f); pushStateSoon();
+});
+function rotateSelected() {
+  const item = items.find(i=>i.id===selectedId); if(!item) return;
+  [item.w, item.h] = [item.h, item.w]; renderItem(item); syncSelectedPanel(); pushState();
+}
+function deleteSelected() { items = items.filter(i=>i.id!==selectedId); deselect(); pushState(); }
+function deleteFixture() { fixtures = fixtures.filter(f=>f.id!==selectedId); deselect(); pushState(); }
+document.addEventListener('keydown', e=>{
+  if ((e.key==='Delete'||e.key==='Backspace') && selectedId!==null
+      && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+    if (selKind==='item') deleteSelected();
+    else if (selKind==='fixture') deleteFixture();
+  }
+});
+stage.addEventListener('pointerdown', e=>{ if (e.target === stage || e.target === roomEl) deselect(); });
+
+/* ---------------- Add buttons ---------------- */
+function setShape(s){
+  currentShape = s;
+  document.getElementById('shapeRect').classList.toggle('active', s==='rect');
+  document.getElementById('shapeRound').classList.toggle('active', s==='round');
+}
+function addCustom() {
+  const name = document.getElementById('newName').value.trim() || 'Object';
+  const w = Math.max(1, +document.getElementById('newW').value||24);
+  const h = Math.max(1, +document.getElementById('newH').value||24);
+  makeItem({ name, w, h, color: selectedColor, shape: currentShape });
+  document.getElementById('newName').value = '';
+}
+const PRESETS = {
+  bed:{name:'Bed',w:57,h:77.5,color:'#a8d8f9'}, desk:{name:'Desk',w:48,h:24,color:'#fcd29b'},
+  dresser:{name:'Dresser',w:30,h:18,color:'#d6d3cb'}, chair:{name:'Chair',w:20,h:20,color:'#bbf7b0'},
+  rug:{name:'Rug',w:60,h:36,color:'#c4b5fd'},
+};
+function addPreset(key){ makeItem({ ...PRESETS[key] }); }
+function resetRoom() {
+  if (!confirm('Remove everything from the room? (This clears it for your roommate too.)')) return;
+  items = []; fixtures = []; deselect(); pushState();
+}
+
+/* ---------------- Colors ---------------- */
+const colorRow = document.getElementById('colorRow');
+COLORS.forEach((c)=>{
+  const sw = document.createElement('div');
+  sw.className = 'swatch' + (c===selectedColor?' selected':'');
+  sw.style.background = c;
+  sw.onclick = ()=>{ selectedColor=c; document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('selected')); sw.classList.add('selected'); };
+  colorRow.appendChild(sw);
+});
+
+/* ============================================================
+   LIVE SYNC with Supabase
+   ============================================================ */
+let sbClient = null;
+// A random stamp unique to THIS window, so we can ignore our own saves
+// when they echo back from the cloud (the cloud reorders the data, so we
+// can't just compare the text).
+const CLIENT_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+function setBadge(state, text) {
+  const b = document.getElementById('connBadge');
+  b.className = state;
+  document.getElementById('connText').textContent = text;
+}
+
+function exportState() {
+  return {
+    items: items.map(i=>({...i})),
+    fixtures: fixtures.map(f=>({...f}))
+  };
+}
+function importState(state) {
+  if (!state) return;
+  // Remove the existing on-screen pieces so they get rebuilt fresh. This is
+  // important: the drag handlers are tied to the specific object they were
+  // created with, so we must recreate the elements for the NEW objects —
+  // otherwise dragging a received piece snaps back to its old spot.
+  document.querySelectorAll('.item, .dims, .fixture').forEach(el => el.remove());
+  items = (state.items||[]).map(i=>({...i}));
+  fixtures = (state.fixtures||[]).map(f=>({...f}));
+  // keep id counter ahead of everything we just loaded
+  const ids = [...items, ...fixtures].map(o=>o.id);
+  idCounter = ids.length ? Math.max(...ids)+1 : 1;
+  if (selectedId!==null && !ids.includes(selectedId)) deselect();
+  renderAll();
+}
+
+let pushTimer = null;
+function pushStateSoon() { clearTimeout(pushTimer); pushTimer = setTimeout(pushState, 400); }
+
+async function pushState() {
+  if (!sbClient) return;            // local mode: nothing to sync
+  const state = exportState();
+  state._by = CLIENT_ID;            // stamp it as ours
+  setBadge('live', 'Saving…');
+  const { error } = await sbClient.from('rooms').upsert({ id: ROOM_ID, data: state });
+  if (error) { console.error(error); setBadge('error', 'Save failed'); }
+  else setBadge('live', 'Live · shared');
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve(true);
+    s.onerror = () => reject(new Error('failed: ' + src));
+    document.head.appendChild(s);
+    // guard against a request that hangs open forever
+    setTimeout(() => reject(new Error('timeout: ' + src)), 8000);
+  });
+}
+
+async function ensureLibrary() {
+  if (window.supabase && window.supabase.createClient) return true;
+  const sources = [
+    'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+    'https://unpkg.com/@supabase/supabase-js@2',
+    'https://cdn.skypack.dev/@supabase/supabase-js@2'
+  ];
+  for (const url of sources) {
+    try {
+      await loadScript(url);
+      if (window.supabase && window.supabase.createClient) return true;
+    } catch (e) { /* try the next source */ }
+  }
+  return !!(window.supabase && window.supabase.createClient);
+}
+
+async function initSync() {
+  setBadge('local', 'Connecting…');
+  const notConfigured = !SUPABASE_URL || SUPABASE_URL.includes('PASTE_') || SUPABASE_ANON_KEY.includes('PASTE_');
+  if (notConfigured) {
+    setBadge('local', 'Local only (keys missing)');
+    seedStarterRoom();
+    return;
+  }
+  setBadge('local', 'Loading library…');
+  const libOk = await ensureLibrary();
+  if (!libOk) {
+    setBadge('error', 'Network blocked the library');
+    seedStarterRoom();
+    return;
+  }
+  try {
+    sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    setBadge('local', 'Connecting…');
+
+    // 1) Load the existing shared room (if any)
+    const { data, error } = await sbClient.from('rooms').select('data').eq('id', ROOM_ID).maybeSingle();
+    if (error) throw error;
+
+    if (data && data.data) {
+      importState(data.data);
+      setBadge('live', 'Live · shared');
+    } else {
+      // First time ever — create the room with starter contents
+      seedStarterRoom();
+      await pushState();
+    }
+
+    // 2) Listen for changes from your roommate
+    sbClient.channel('room-' + ROOM_ID)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'rooms', filter: 'id=eq.' + ROOM_ID },
+        (payload) => {
+          const incoming = payload.new && payload.new.data;
+          if (!incoming) return;
+          if (incoming._by === CLIENT_ID) return; // ignore our OWN change echoing back
+          if (isDragging) return;                 // don't yank things mid-drag
+          importState(incoming);
+          setBadge('live', 'Live · updated');
+        })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setBadge('live', 'Live · shared');
+      });
+
+  } catch (e) {
+    console.error(e);
+    setBadge('error', 'Error: ' + (e.message || e));
+    seedStarterRoom();
+  }
+}
+
+function seedStarterRoom() {
+  if (items.length || fixtures.length) return;
+  makeItem({ name:'Bed', w:57, h:77.5, color:'#a8d8f9', xIn:8, yIn:14 });
+  const d = { id: idCounter++, type:'door', wall:'top', along:80, size:36 }; fixtures.push(d);
+  fixtures.push({ id: idCounter++, type:'window', wall:'left',  along:30,  size:55 });
+  fixtures.push({ id: idCounter++, type:'window', wall:'left',  along:100, size:55 });
+  fixtures.push({ id: idCounter++, type:'window', wall:'right', along:65,  size:26 });
+  deselect();
+}
+
+/* ---------------- Init ---------------- */
+function layoutOnly() { computeScale(); drawStaticFixtures(); renderAll(); }
+window.addEventListener('resize', layoutOnly);
+try {
+  computeScale();
+  drawStaticFixtures();
+} catch (e) {
+  setBadge('error', 'UI error: ' + (e.message || e));
+}
+initSync().catch(e => setBadge('error', 'Start error: ' + (e.message || e)));
+</script>
+</body>
+</html>
