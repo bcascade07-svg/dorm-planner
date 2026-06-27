@@ -286,7 +286,7 @@
     <input type="text" id="selLink" placeholder="Paste a store URL">
     <button class="secondary" onclick="rotateSelected()" style="margin-bottom:8px;">↻ Rotate 90°</button>
     <button class="danger" onclick="deleteSelected()">Delete object</button>
-    <p class="hint">Drag the middle to move. Drag the blue dot to resize. Delete key removes it.</p>
+    <p class="hint">Drag to move. To resize, type the Width and Depth above. Delete key removes it.</p>
   </div>
 
   <div class="section" id="fixturePanel">
@@ -463,7 +463,7 @@ function renderItem(item) {
     el = document.createElement('div');
     el.id = 'item-'+item.id;
     el.className = 'item';
-    el.innerHTML = `<span class="label"></span><div class="resize-handle"></div>`;
+    el.innerHTML = `<span class="label"></span>`;
     roomEl.appendChild(el);
     attachDrag(el, item);
   }
@@ -513,9 +513,7 @@ function renderAll() {
 }
 
 function attachDrag(el, item) {
-  const handle = el.querySelector('.resize-handle');
   el.addEventListener('pointerdown', (e) => {
-    if (e.target === handle) return;
     e.preventDefault();
     selectItem(item.id);
     isDragging = true;
@@ -531,28 +529,6 @@ function attachDrag(el, item) {
     }
     function up() {
       el.style.cursor = 'grab'; isDragging = false;
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      pushState();
-    }
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-  });
-  handle.addEventListener('pointerdown', (e) => {
-    e.preventDefault(); e.stopPropagation();
-    selectItem(item.id);
-    isDragging = true;
-    const startX = e.clientX, startY = e.clientY;
-    const origW = item.w, origH = item.h;
-    function move(ev) {
-      const dwIn = (ev.clientX - startX) / PPI;
-      const dhIn = (ev.clientY - startY) / PPI;
-      item.w = Math.max(4, Math.round(clamp(origW + dwIn, 4, ROOM.width - item.xIn)));
-      item.h = Math.max(4, Math.round(clamp(origH + dhIn, 4, ROOM.length - item.yIn)));
-      renderItem(item); syncSelectedPanel();
-    }
-    function up() {
-      isDragging = false;
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       pushState();
