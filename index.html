@@ -423,10 +423,10 @@ function attachFixtureDrag(el, f) {
       const yIn = (ev.clientY - rect.top) / PPI;
       const dTop = yIn, dBottom = ROOM.length - yIn, dLeft = xIn, dRight = ROOM.width - xIn;
       const min = Math.min(dTop, dBottom, dLeft, dRight);
-      if (min===dTop)        { f.wall='top';    f.along = xIn - f.size/2; }
-      else if (min===dBottom){ f.wall='bottom'; f.along = xIn - f.size/2; }
-      else if (min===dLeft)  { f.wall='left';   f.along = yIn - f.size/2; }
-      else                   { f.wall='right';  f.along = yIn - f.size/2; }
+      if (min===dTop)        { f.wall='top';    f.along = Math.round(xIn - f.size/2); }
+      else if (min===dBottom){ f.wall='bottom'; f.along = Math.round(xIn - f.size/2); }
+      else if (min===dLeft)  { f.wall='left';   f.along = Math.round(yIn - f.size/2); }
+      else                   { f.wall='right';  f.along = Math.round(yIn - f.size/2); }
       renderFixture(f);
     }
     function up() {
@@ -525,8 +525,8 @@ function attachDrag(el, item) {
     function move(ev) {
       const dxIn = (ev.clientX - startX) / PPI;
       const dyIn = (ev.clientY - startY) / PPI;
-      item.xIn = clamp(origX + dxIn, 0, ROOM.width - item.w);
-      item.yIn = clamp(origY + dyIn, 0, ROOM.length - item.h);
+      item.xIn = Math.round(clamp(origX + dxIn, 0, ROOM.width - item.w));
+      item.yIn = Math.round(clamp(origY + dyIn, 0, ROOM.length - item.h));
       renderItem(item);
     }
     function up() {
