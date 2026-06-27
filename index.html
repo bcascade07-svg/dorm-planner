@@ -31,8 +31,12 @@
   .tab-btn:hover { background: #e4e6ea; }
   .tab-btn.active { background: #2563eb; color: #fff; }
   #tabbar .total-pill {
-    margin-left: auto; font-size: 14px; font-weight: 700; color: #1b8a4b;
+    font-size: 14px; font-weight: 700; color: #1b8a4b;
     background: #e7f7ec; padding: 8px 14px; border-radius: 8px;
+  }
+  #tabbar .who-pill {
+    margin-left: auto; font-size: 13px; font-weight: 600; color: #444;
+    background: #eef1f6; padding: 8px 12px; border-radius: 8px;
   }
 
   #plannerView { display: flex; flex: 1; min-height: 0; }
@@ -230,6 +234,7 @@
   <span class="brand">🛏️ Dorm Planner</span>
   <button class="tab-btn active" id="tabRoom" onclick="showTab('room')">Room Layout</button>
   <button class="tab-btn" id="tabShop" onclick="showTab('shop')">🧾 Shopping List</button>
+  <span class="who-pill" id="whoPill">👥 1 here</span>
   <span class="total-pill" id="totalPill">Total: $0</span>
 </div>
 
@@ -800,6 +805,12 @@ function setBadge(state, text) {
   document.getElementById('connText').textContent = text;
 }
 
+function updateWho(n) {
+  const pill = document.getElementById('whoPill');
+  if (!pill) return;
+  pill.textContent = '👥 ' + n + (n === 1 ? ' here' : ' editing');
+}
+
 function exportState() {
   return {
     items: items.map(i=>({...i})),
@@ -910,6 +921,18 @@ async function initSync() {
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') setBadge('live', 'Live · shared');
       });
+
+    // 3) Presence — count how many people are in the room right now
+    const presence = sbClient.channel('presence-' + ROOM_ID, {
+      config: { presence: { key: CLIENT_ID } }
+    });
+    presence.on('presence', { event: 'sync' }, () => {
+      const n = Object.keys(presence.presenceState()).length || 1;
+      updateWho(n);
+    });
+    presence.subscribe((status) => {
+      if (status === 'SUBSCRIBED') presence.track({ at: Date.now() });
+    });
 
   } catch (e) {
     console.error(e);
