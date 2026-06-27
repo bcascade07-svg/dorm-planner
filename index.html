@@ -476,6 +476,8 @@ function renderItem(item) {
 }
 function renderDims(item) {
   let dims = document.getElementById('dims-'+item.id);
+  // Dimension lines only show in Measure mode.
+  if (!measureMode) { if (dims) dims.innerHTML = ''; return; }
   if (!dims) {
     dims = document.createElement('div');
     dims.id = 'dims-'+item.id;
@@ -705,7 +707,7 @@ function toggleMeasure() {
   const b = document.getElementById('measureBtn');
   b.textContent = '📏 Measure mode: ' + (measureMode ? 'ON' : 'OFF');
   b.classList.toggle('toggle-on', measureMode);
-  renderMeasure();
+  renderAll(); // refresh dimension lines on/off across all objects
 }
 
 // horizontal gap: a line from xA to xB at height yPx, labelled with inches
